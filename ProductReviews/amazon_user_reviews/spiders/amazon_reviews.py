@@ -14,7 +14,7 @@ class AmazonReviewsSpider(scrapy.Spider):
     start_urls=[]
  
     # Creating list of urls to be scraped by appending page number a the end of base url
-    for i in range(1,175):
+    for i in range(1,176):
         start_urls.append(myBaseUrl+str(i))
     #print (start_urls)
  
@@ -30,14 +30,18 @@ class AmazonReviewsSpider(scrapy.Spider):
         
             #Collecting review date
             review_date = data.css('.review-date')
+            
             count = 0
  
             # Combining the results
+            #for review in star_rating:
+            #    yield{'stars': ''.join(review.xpath('.//text()').extract()),
+                      
+            #          'comment': ''.join(comments[count].xpath(".//text()").extract())}
+                
             for review in star_rating:
                 yield{'stars': ''.join(review.xpath('.//text()').extract()),
-                      'comment': ''.join(comments[count].xpath(".//text()").extract()),
-                      'date': ''.join(review_date[count].xpath(".//text()").extract())
-                      
+                      'comment': ''.join(comments[count].xpath(".//text()").extract())
                      }
                 count=count+1
                 

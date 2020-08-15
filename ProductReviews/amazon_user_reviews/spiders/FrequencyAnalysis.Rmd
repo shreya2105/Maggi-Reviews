@@ -1,0 +1,75 @@
+---
+title: "Frequency Analysis"
+author: "SA"
+date: "8/14/2020"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(quanteda)
+```
+
+
+```{r}
+maggie <- fread("maggie.csv")
+```
+
+```{r}
+
+toks_text <- tokens(maggie$comment, remove_punct = TRUE) 
+
+dfmat_text <- dfm(toks_text,tolower = TRUE, remove = c(stopwords("en"), "maggie", "pack", "product", "noodles", "2", "packs", "family", "regular","can", "maggi", "even", "really", "packets", "since", "just", "got", "within", "also", "ki", "kar", "if", "the"))
+
+tstat_freq <- textstat_frequency(dfmat_text, n = 40)
+
+tstat_freq
+
+textplot_wordcloud(dfmat_text, min_count = 30, max_words = 150)
+```
+
+#Collocation Analysis -- Nothing fun so far.
+```{r}
+tstat_col_caps <- tokens_select(toks_text, pattern = '^[A-Z]', 
+                                valuetype = 'regex', 
+                                case_insensitive = FALSE, 
+                                padding = TRUE) %>% 
+           textstat_collocations(min_count = 100)
+
+```
+
+#add a new column -- sentiment-- to label stars >3 as positive, < 3 as negative and ==3 as neutral
+```{r}
+
+maggie <- maggie %>% mutate(sentiment = case_when(stars < 3 ~ "Negative",
+                                                  stars >3 ~ "Positive",
+                                                  stars ==3 ~ "Neutral"))
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
