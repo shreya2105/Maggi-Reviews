@@ -11,22 +11,60 @@ library(data.table)
 library(quanteda)
 ```
 
-
 ```{r}
+
 maggie <- fread("maggie.csv")
+#maggie <- fread("earphones.csv")
 ```
 
 ```{r}
+library(dplyr)
+library(tidyr)
 
+#Assigning sentiments based on star ratings
+maggie <- maggie %>% mutate(sentiment = case_when(stars < 3 ~ "Negative",
+                                                  stars >3 ~ "Positive",
+                                                  stars ==3 ~ "Neutral"))
+
+maggi <- maggie %>% select(-c("stars", "comment"))
+
+#Sentiment table
+maggie_sentiment <- gather(maggi, key, sentiment, -date) %>% 
+    count(date, key, sentiment) %>% 
+    spread(sentiment, n, fill = 0)
+
+maggie_sentiment <- maggie_sentiment %>% mutate(sum_sent = Negative + Positive + Neutral)
+maggie_sentiment <- maggie_sentiment %>% mutate(Negative_shares = round((Negative/sum_sent)*100)) %>% 
+  mutate(positive_share = round((Positive/sum_sent)*100)) %>% 
+  mutate(neutral_share = round((Neutral/sum_sent)*100))
+```
+
+
+```{r}
+
+maggie1 <- maggie %>% filter(date > "2019-12-31" & sentiment =="Negative") 
 toks_text <- tokens(maggie$comment, remove_punct = TRUE) 
 
-dfmat_text <- dfm(toks_text,tolower = TRUE, remove = c(stopwords("en"), "maggie", "pack", "product", "noodles", "2", "packs", "family", "regular","can", "maggi", "even", "really", "packets", "since", "just", "got", "within", "also", "ki", "kar", "if", "the"))
+dfmat_text <- dfm(toks_text,tolower = TRUE, remove = c(stopwords("en"), "maggie", "pack", "product", "noodles", "2", "packs", "family", "regular","can", "maggi", "even", "really", "packets", "since", "just", "got", "within", "also", "ki", "kar", "if", "the", "good"))
 
 tstat_freq <- textstat_frequency(dfmat_text, n = 40)
 
 tstat_freq
 
-textplot_wordcloud(dfmat_text, min_count = 30, max_words = 150)
+textplot_wordcloud(dfmat_text, min_count = 10, max_words = 1000)
+
+
+
+#Relative frequency analysis
+tstat_key <- textstat_keyness(dfmat_text, 
+                                target = maggie$sentiment == "Negative")
+
+
+textplot_keyness(tstat_key) +
+  theme_minimal() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
 ```
 
 #Collocation Analysis -- Nothing fun so far.
@@ -35,29 +73,38 @@ tstat_col_caps <- tokens_select(toks_text, pattern = '^[A-Z]',
                                 valuetype = 'regex', 
                                 case_insensitive = FALSE, 
                                 padding = TRUE) %>% 
-           textstat_collocations(min_count = 100)
-
+           textstat_collocations(min_count = 2)
+tstat_col_caps
 ```
 
 #add a new column -- sentiment-- to label stars >3 as positive, < 3 as negative and ==3 as neutral
 ```{r}
 
-maggie <- maggie %>% mutate(sentiment = case_when(stars < 3 ~ "Negative",
-                                                  stars >3 ~ "Positive",
-                                                  stars ==3 ~ "Neutral"))
-
-
-
+#maggie_sentiment <- maggie_sentiment %>% mutate(sent = apply(.[,3:5], 1, function(x) names(x)[which.max(x)]))
 ```
 
+```{r}
+library(ggplot2)
 
 
+maggie_sentiment$date <- as.Date(maggie_sentiment$date)
 
+maggi_long <- maggie_sentiment%>% select(-c("key", "Negative", "Neutral", "Positive", "sum_sent")) %>% filter(date > "2017-12-31")%>% gather("sentiment_share", "value",2:4)  # convert to long format
 
-
-
-
-
+p <- ggplot(maggi_long,
+       aes(x = date, y = value, colour = sentiment_share)) +
+       geom_point(size = 0.2) +
+       geom_smooth(method = lm) +
+       scale_x_date(expand = c(0, 0), breaks = "2 month", minor_breaks = "4 week") + 
+       ylab("share of reviews (%)") +
+       xlab("") +
+       scale_colour_brewer(palette = "Set1") + 
+       theme_minimal() +
+       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.text.x = element_text(angle = 45))
+  
+p
+ggsave("p1.jpeg")
+```
 
 
 
